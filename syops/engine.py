@@ -31,10 +31,11 @@ def get_syops_pytorch(model, input_res, dataloader=None,
                       custom_modules_hooks={},
                       output_precision=3,
                       syops_units='GMac',
-                      param_units='M'):
+                      param_units='M',
+                      batch_dim_idx=0):
     global CUSTOM_MODULES_MAPPING
     CUSTOM_MODULES_MAPPING = custom_modules_hooks
-    syops_model = add_syops_counting_methods(model)
+    syops_model = add_syops_counting_methods(model, batch_dim_idx, ost)
     syops_model.eval()
     syops_model.start_syops_count(ost=ost, verbose=verbose,
                                 ignore_list=ignore_modules)
@@ -173,7 +174,7 @@ def get_model_parameters_number(model):
     return params_num
 
 
-def add_syops_counting_methods(net_main_module):
+def add_syops_counting_methods(net_main_module, batch_dim_idx, ost):
     # adding additional methods to the existing module object,
     # this is done this way so that each function has access to self object
     net_main_module.start_syops_count = start_syops_count.__get__(net_main_module)
@@ -181,6 +182,11 @@ def add_syops_counting_methods(net_main_module):
     net_main_module.reset_syops_count = reset_syops_count.__get__(net_main_module)
     net_main_module.compute_average_syops_cost = compute_average_syops_cost.__get__(
                                                     net_main_module)
+
+    if hasattr(net_main_module, '__batch_dim_idx__'):
+        print('Warning: __batch_dim_idx__ is already defined for the module', file=ost)
+
+    net_main_module.__batch_dim_idx__ = batch_dim_idx
 
     net_main_module.reset_syops_count()
 
@@ -280,7 +286,8 @@ def batch_counter_hook(module, input, output):
     if len(input) > 0:
         # Can have multiple inputs, getting the first one
         input = input[0]
-        batch_size = len(input)
+        batch_dim = module.__batch_dim_idx__
+        batch_size = input.shape[batch_dim]
     else:
         pass
         print('Warning! No positional inputs found for a module,'
