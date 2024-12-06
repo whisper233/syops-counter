@@ -21,7 +21,8 @@ def get_model_complexity_info(model, input_res, dataloader=None,
                               verbose=False, ignore_modules=[],
                               custom_modules_hooks={}, backend='pytorch',
                               syops_units=None, param_units=None,
-                              output_precision=2):
+                              output_precision=2,
+                              batch_dim_idx=0):
     assert type(input_res) is tuple
     assert len(input_res) >= 1
     assert isinstance(model, nn.Module)
@@ -35,7 +36,8 @@ def get_model_complexity_info(model, input_res, dataloader=None,
                                                       custom_modules_hooks,
                                                       output_precision=output_precision,
                                                       syops_units=syops_units,
-                                                      param_units=param_units)
+                                                      param_units=param_units,
+                                                      batch_dim_idx=batch_dim_idx)
     else:
         raise ValueError('Wrong backend name')
 
